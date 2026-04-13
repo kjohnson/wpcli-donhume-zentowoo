@@ -35,13 +35,16 @@ class ZenToWooCommand extends WP_CLI_Command {
 		$csv->setHeaderOffset(0);
 
 		$products = [];
-		$records = $csv->getRecords(['products_id', 'products_price', 'products_name', 'products_description']);
+		$records = $csv->getRecords(['id', 'price', 'price_sale', 'name', 'description']);
 		foreach($records as $record) {
 			$product = new WC_Product_Simple();
-			$product->set_name( $record['products_name'] ); // product title
+			$product->set_name( $record['name'] ); // product title
 //			$product->set_slug( 'medium-size-wizard-hat-in-new-york' );
-			$product->set_regular_price( $record['products_price'] ); // in current shop currency
-			$product->set_description( $record['products_description'] );
+			$product->set_regular_price( $record['price'] ); // in current shop currency
+			$product->set_sale_price( $record['price_sale'] ); // in current shop currency
+			$product->set_description( $record['description'] );
+			$product->save();
+			WP_CLI::log( 'Imported product: ' . $product->get_name() );
 			$products[] = $product;
 		}
 
