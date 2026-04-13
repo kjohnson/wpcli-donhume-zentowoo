@@ -119,6 +119,8 @@ class ZenToWooCommand extends WP_CLI_Command {
 			wp_generate_attachment_metadata( $attachment_id, $sideload[ 'file' ] )
 		);
 
+		WP_CLI::success( 'Sideloaded image: ' . $image_url );
+
 		return $attachment_id;
 	}
 }
