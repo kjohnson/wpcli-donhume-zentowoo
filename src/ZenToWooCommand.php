@@ -46,7 +46,7 @@ class ZenToWooCommand extends WP_CLI_Command {
 
 			if(isset($record['image']) && $record['image']) {
 				$product->set_image_id(
-					$this->sideload_external_image('http://www.donhume.com/images/' . $record['image'])
+					$this->sideload_external_image('//www.donhume.com/images/' . $record['image'])
 				);
 			}
 
