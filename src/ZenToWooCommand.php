@@ -73,6 +73,7 @@ class ZenToWooCommand extends WP_CLI_Command {
 		$temp_file = download_url( $image_url );
 
 		if( is_wp_error( $temp_file ) ) {
+			WP_CLI::error( 'Error: ' . $temp_file->get_error_message() );
 			return false;
 		}
 
