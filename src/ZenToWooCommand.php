@@ -15,7 +15,7 @@ class ZenToWooCommand extends WP_CLI_Command {
 	 */
 	public function __invoke( $args, $assoc_args ) {
 
-		if(method_exists($this, @$args[0])) {
+		if(isset($args[0]) && method_exists($this, $args[0])) {
 			call_user_func_array([$this, $args[0]], [array_slice($args, 1), $assoc_args]);
 			return;
 		}
