@@ -91,6 +91,7 @@ class ZenToWooCommand extends WP_CLI_Command {
 		);
 
 		if( ! empty( $sideload[ 'error' ] ) ) {
+			WP_CLI::error( 'Error: ' . $sideload[ 'error' ] );
 			// you may return error message if you want
 			return false;
 		}
@@ -108,6 +109,7 @@ class ZenToWooCommand extends WP_CLI_Command {
 		);
 
 		if( is_wp_error( $attachment_id ) || ! $attachment_id ) {
+			WP_CLI::error( 'Error: ' . $attachment_id->get_error_message() );
 			return false;
 		}
 
