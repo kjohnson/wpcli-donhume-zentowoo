@@ -1,0 +1,35 @@
+{
+    "name": "kjohnson/zentowoo",
+    "type": "wp-cli-package",
+    "description": "",
+    "homepage": "https://github.com/kjohnson/zentowoo",
+    "license": "MIT",
+    "authors": [],
+    "require": {
+        "league/csv": "^9.28.0",
+        "wp-cli/wp-cli": "^2.5"
+    },
+    "config": {
+        "process-timeout": 7200,
+        "sort-packages": true
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-master": "2.x-dev"
+        },
+        "bundled": false,
+        "commands": [
+            "zentowoo"
+        ]
+    },
+    "autoload": {
+        "psr-4": {
+            "ForgeMedia\\ZenToWoo\\": "src/"
+        },
+        "files": [
+            "command.php"
+        ]
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
