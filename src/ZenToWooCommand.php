@@ -50,7 +50,7 @@ class ZenToWooCommand extends WP_CLI_Command {
 
 			if(isset($record['image']) && $record['image']) {
 				$attachment_id = media_sideload_image('https://www.donhume.com/images/' . $record['image'], $product->get_id(), $record['name'], 'id');
-				if(wp_is_error($attachment_id)) {
+				if(is_wp_error($attachment_id)) {
 					WP_CLI::error( $attachment_id->get_error_message() );
 				} else {
 					WP_CLI::log( 'Imported image: ' . $attachment_id );
