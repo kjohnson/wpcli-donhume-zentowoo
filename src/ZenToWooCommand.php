@@ -25,6 +25,8 @@ class ZenToWooCommand extends WP_CLI_Command {
 
 	function csv( $args, $assoc_args ) {
 
+		add_filter('https_ssl_verify', '__return_false');
+
 		if(!isset($args[0])) {
 			WP_CLI::error( 'No file path provided' );
 			return;
@@ -44,86 +46,21 @@ class ZenToWooCommand extends WP_CLI_Command {
 			$product->set_sale_price( $record['price_sale'] ); // in current shop currency
 			$product->set_description( $record['description'] );
 
+			$product->save();
+
 			if(isset($record['image']) && $record['image']) {
+				$attachment_id = media_sideload_image('https://www.donhume.com/images/' . $record['image'], $product->get_id(), $record['name'], 'id');
+				WP_CLI::log( 'Imported image: ' . $attachment_id );
 				$product->set_image_id(
-					$this->sideload_external_image('//www.donhume.com/images/' . $record['image'])
+					$attachment_id
 				);
+				$product->save();
 			}
 
-			$product->save();
 			WP_CLI::log( 'Imported product: ' . $product->get_name() );
 			$products[] = $product;
 		}
 
 		WP_CLI::success( 'Imported ' . count($products) . ' products' );
-	}
-
-	/**
-	 * Upload image from URL programmatically
-	 *
-	 * @author Misha Rudrastyh
-	 * @link https://rudrastyh.com/wordpress/how-to-add-images-to-media-library-from-uploaded-files-programmatically.html#upload-image-from-url
-	 */
-	protected function sideload_external_image( $image_url ) {
-
-		// it allows us to use download_url() and wp_handle_sideload() functions
-		require_once( ABSPATH . 'wp-admin/includes/file.php' );
-
-		// download to temp dir
-		$temp_file = download_url( $image_url );
-
-		if( is_wp_error( $temp_file ) ) {
-			WP_CLI::error( 'Error: ' . $temp_file->get_error_message() );
-			return false;
-		}
-
-		// move the temp file into the uploads directory
-		$file = array(
-			'name'     => basename( $image_url ),
-			'type'     => mime_content_type( $temp_file ),
-			'tmp_name' => $temp_file,
-			'size'     => filesize( $temp_file ),
-		);
-		$sideload = wp_handle_sideload(
-			$file,
-			array(
-				'test_form'   => false // no needs to check 'action' parameter
-			)
-		);
-
-		if( ! empty( $sideload[ 'error' ] ) ) {
-			WP_CLI::error( 'Error: ' . $sideload[ 'error' ] );
-			// you may return error message if you want
-			return false;
-		}
-
-		// it is time to add our uploaded image into WordPress media library
-		$attachment_id = wp_insert_attachment(
-			array(
-				'guid'           => $sideload[ 'url' ],
-				'post_mime_type' => $sideload[ 'type' ],
-				'post_title'     => basename( $sideload[ 'file' ] ),
-				'post_content'   => '',
-				'post_status'    => 'inherit',
-			),
-			$sideload[ 'file' ]
-		);
-
-		if( is_wp_error( $attachment_id ) || ! $attachment_id ) {
-			WP_CLI::error( 'Error: ' . $attachment_id->get_error_message() );
-			return false;
-		}
-
-		// update medatata, regenerate image sizes
-		require_once( ABSPATH . 'wp-admin/includes/image.php' );
-
-		wp_update_attachment_metadata(
-			$attachment_id,
-			wp_generate_attachment_metadata( $attachment_id, $sideload[ 'file' ] )
-		);
-
-		WP_CLI::success( 'Sideloaded image: ' . $image_url );
-
-		return $attachment_id;
 	}
 }
