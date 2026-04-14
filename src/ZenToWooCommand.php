@@ -28,52 +28,21 @@ class ZenToWooCommand extends WP_CLI_Command {
 		add_filter('https_ssl_verify', '__return_false');
 
 		if(!isset($args[0])) {
-			WP_CLI::error( 'No file path provided' );
+			WP_CLI::error( 'No categories CSV file specified' );
 			return;
 		}
 
-		//load the CSV document from a file path
-		$csv = Reader::from($args[0], 'r');
-		$csv->setHeaderOffset(0);
-
-		$products = [];
-		$records = $csv->getRecords(['id', 'price', 'price_sale', 'image', 'name', 'description']);
-		foreach($records as $record) {
-			$product = new WC_Product_Simple();
-			$product->set_name( $record['name'] ); // product title
-//			$product->set_slug( 'medium-size-wizard-hat-in-new-york' );
-			$product->set_regular_price( $record['price'] ); // in current shop currency
-			$product->set_sale_price( $record['price_sale'] ); // in current shop currency
-			$product->set_description( $record['description'] );
-
-			$product->save();
-
-			if(isset($record['image']) && $record['image']) {
-				$attachment_id = media_sideload_image('https://dev.donhume.com/wp-content/uploads/zentowoo/images/' . $record['image'], $product->get_id(), $record['name'], 'id');
-				if(is_wp_error($attachment_id)) {
-					WP_CLI::error( $attachment_id->get_error_message() . ': Unable to sideload image: ' . $record['image'], false );
-				} else {
-					WP_CLI::log( 'Imported image: ' . $attachment_id );
-					$product->set_image_id(
-						$attachment_id
-					);
-					$product->save();
-				}
-			}
-
-			WP_CLI::log( 'Imported product: ' . $product->get_name() );
-			$products[] = $product;
-		}
-
-		WP_CLI::success( 'Imported ' . count($products) . ' products' );
-	}
-
-	function categories( $args, $assoc_args )
-	{
-		if(!isset($args[0])) {
-			WP_CLI::error( 'No file path provided' );
+		if(!isset($args[1])) {
+			WP_CLI::error( 'No products CSV file specified' );
 			return;
 		}
+
+		if(!isset($args[2])) {
+			WP_CLI::error( 'No products/category CSV file specified' );
+			return;
+		}
+
+		// CATEGORIES
 
 		//load the CSV document from a file path
 		$csv = Reader::from($args[0], 'r');
@@ -85,36 +54,118 @@ class ZenToWooCommand extends WP_CLI_Command {
 		foreach($records as $record) {
 
 			if($record['parent_id'] == 0) {
-				$subcategories[$record['categories_id']] = $record;
+				$categories[$record['categories_id']] = $record;
 			} else {
-				$categories[$record['parent_id']] = $record;
+				$subcategories[$record['categories_id']] = $record;
 			}
 		}
 
 		$categories_id_lookup = [];
 		foreach($categories as $category) {
-			$result = wp_insert_term( $category['categories_name'], 'product_cat');
 
-			if(is_wp_error($result)) {
-				WP_CLI::error( $result->get_error_message() );
+			$existing_term = term_exists( $category['categories_name'], 'product_cat' );
+			if( $existing_term ) {
+				WP_CLI::log( 'Skipping category: ' . $category['categories_name'] );
+				$categories_id_lookup[$category['categories_id']] = $existing_term['term_id'];
 			} else {
-				$categories_id_lookup[$category['categories_id']] = $result['term_id'];
-				WP_CLI::log( 'Imported category: ' . $result['term_id'] );
+				$result = wp_insert_term( $category['categories_name'], 'product_cat');
+
+				if(is_wp_error($result)) {
+					WP_CLI::error( $result->get_error_message(), false );
+				} else {
+					$categories_id_lookup[$category['categories_id']] = $result['term_id'];
+					WP_CLI::log( 'Imported category: ' . $result['term_id'] );
+				}
 			}
 		}
+		WP_CLI::success( 'Processed ' . count($categories) . ' categories' );
 
 		foreach($subcategories as $subcategory) {
 
-			$result = wp_insert_term( $category['categories_name'], 'product_cat', [
-				'parent' => $categories_id_lookup[$subcategory['categories_id']]
-			]);
 
-			if(is_wp_error($result)) {
-				WP_CLI::error( $result->get_error_message() );
+			$existing_term = term_exists( $subcategory['categories_name'], 'product_cat' );
+			if( $existing_term ) {
+				WP_CLI::log( 'Skipping subcategory: ' . $subcategory['categories_name'] );
+				$categories_id_lookup[$subcategory['categories_id']] = $existing_term['term_id'];
 			} else {
-				$categories_id_lookup[$category['categories_id']] = $result['term_id'];
-				WP_CLI::log( 'Imported subcategory: ' . $result['term_id'] );
+				$result = wp_insert_term( $subcategory['categories_name'], 'product_cat', [
+					'parent' => $categories_id_lookup[$subcategory['parent_id']]
+				]);
+
+				if(is_wp_error($result)) {
+					WP_CLI::error( $result->get_error_message(), false );
+				} else {
+					$categories_id_lookup[$subcategory['categories_id']] = $result['term_id'];
+					WP_CLI::log( 'Imported subcategory: ' . $result['term_id'] );
+				}
 			}
 		}
+		WP_CLI::success( 'Processed ' . count($subcategories) . ' subcategories' );
+
+		// PRODUCTS
+
+		//load the CSV document from a file path
+		$csv = Reader::from($args[1], 'r');
+		$csv->setHeaderOffset(0);
+
+		$products = [];
+		$product_id_lookup = [];
+		$records = $csv->getRecords(['id', 'price', 'price_sale', 'image', 'name', 'description']);
+		foreach($records as $record) {
+			$product = new WC_Product_Simple();
+			$product->set_name( $record['name'] ); // product title
+//			$product->set_slug( 'medium-size-wizard-hat-in-new-york' );
+			$product->set_regular_price( $record['price'] ); // in current shop currency
+			$product->set_sale_price( $record['price_sale'] ); // in current shop currency
+			$product->set_description( $record['description'] );
+
+			$product->save();
+
+//			if(isset($record['image']) && $record['image']) {
+//				$attachment_id = media_sideload_image('https://dev.donhume.com/wp-content/uploads/zentowoo/images/' . $record['image'], $product->get_id(), $record['name'], 'id');
+//				if(is_wp_error($attachment_id)) {
+//					WP_CLI::error( $attachment_id->get_error_message() . ': Unable to sideload image: ' . $record['image'], false );
+//				} else {
+//					WP_CLI::log( 'Imported image: ' . $attachment_id );
+//					$product->set_image_id(
+//						$attachment_id
+//					);
+//					$product->save();
+//				}
+//			}
+
+			$product_id_lookup[$record['id']] = $product->get_id();
+
+			WP_CLI::log( 'Imported product: ' . $product->get_name() );
+			$products[] = $product;
+		}
+
+		WP_CLI::success( 'Imported ' . count($products) . ' products' );
+
+
+		// PRODUCT?CATEGORY MAPPING
+
+		$csv = Reader::from($args[2], 'r');
+		$csv->setHeaderOffset(0);
+
+		$product_category_mapping = [];
+		$records = $csv->getRecords(['products_id', 'categories_id']);
+		foreach($records as $record) {
+			if(isset($product_id_lookup[$record['products_id']])) {
+				$product_id = $product_id_lookup[$record['products_id']];
+				if (!isset($product_category_mapping[$product_id])) {
+					$product_category_mapping[$product_id] = [];
+				}
+				if (isset($categories_id_lookup[$record['categories_id']])) {
+					$product_category_mapping[$product_id][] = intval($categories_id_lookup[$record['categories_id']]);
+				}
+			}
+		}
+
+		foreach($product_category_mapping as $product_id => $category_ids) {
+			wp_set_object_terms($product_id, $category_ids, 'product_cat');
+			WP_CLI::success( 'Mapped product: ' . $product_id . ' to ' . count($category_ids) . ' categories' );
+		}
 	}
+
 }
