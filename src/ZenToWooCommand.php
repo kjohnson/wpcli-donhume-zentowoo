@@ -196,6 +196,13 @@ class ZenToWooCommand extends WP_CLI_Command {
 						// Clean attribute name to get the taxonomy
 						$taxonomy = 'pa_' . wc_sanitize_taxonomy_name( $attribute_array['name'] );
 
+						if(!taxonomy_exists($taxonomy)) {
+							wc_create_attribute([
+								'name' => $attribute_array['name'],
+								'slug' => wc_sanitize_taxonomy_name( $attribute_array['name'] ),
+							]);
+						}
+
 						$option_term_ids = array(); // Initializing
 
 						// Loop through defined attribute data options (terms values)
