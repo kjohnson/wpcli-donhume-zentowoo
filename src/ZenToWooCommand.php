@@ -44,7 +44,7 @@ class ZenToWooCommand extends WP_CLI_Command {
 
 		if(!isset($args[3])) WP_CLI::error( 'No attribute JSON file specified' );
 		$attribute_import = file_get_contents($args[3]);
-		$attribute_import_data = json_decode($attribute_import, true);
+		$attribute_import_data = json_decode($attribute_import);
 		if(is_null($attribute_import_data)) WP_CLI::error( 'Unable to parse attribute JSON file' );
 
 		// CATEGORIES
@@ -150,27 +150,27 @@ class ZenToWooCommand extends WP_CLI_Command {
 
 		// PRODUCT?CATEGORY MAPPING
 
-		$csv = Reader::from($args[2], 'r');
-		$csv->setHeaderOffset(0);
-
-		$product_category_mapping = [];
-		$records = $csv->getRecords(['products_id', 'categories_id']);
-		foreach($records as $record) {
-			if(isset($product_id_lookup[$record['products_id']])) {
-				$product_id = $product_id_lookup[$record['products_id']];
-				if (!isset($product_category_mapping[$product_id])) {
-					$product_category_mapping[$product_id] = [];
-				}
-				if (isset($categories_id_lookup[$record['categories_id']])) {
-					$product_category_mapping[$product_id][] = intval($categories_id_lookup[$record['categories_id']]);
-				}
-			}
-		}
-
-		foreach($product_category_mapping as $product_id => $category_ids) {
-			wp_set_object_terms($product_id, $category_ids, 'product_cat');
-			WP_CLI::success( 'Mapped product: ' . $product_id . ' to ' . count($category_ids) . ' categories' );
-		}
+//		$csv = Reader::from($args[2], 'r');
+//		$csv->setHeaderOffset(0);
+//
+//		$product_category_mapping = [];
+//		$records = $csv->getRecords(['products_id', 'categories_id']);
+//		foreach($records as $record) {
+//			if(isset($product_id_lookup[$record['products_id']])) {
+//				$product_id = $product_id_lookup[$record['products_id']];
+//				if (!isset($product_category_mapping[$product_id])) {
+//					$product_category_mapping[$product_id] = [];
+//				}
+//				if (isset($categories_id_lookup[$record['categories_id']])) {
+//					$product_category_mapping[$product_id][] = intval($categories_id_lookup[$record['categories_id']]);
+//				}
+//			}
+//		}
+//
+//		foreach($product_category_mapping as $product_id => $category_ids) {
+//			wp_set_object_terms($product_id, $category_ids, 'product_cat');
+//			WP_CLI::success( 'Mapped product: ' . $product_id . ' to ' . count($category_ids) . ' categories' );
+//		}
 
 
 		// ATTRIBUTES
