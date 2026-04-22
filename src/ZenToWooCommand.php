@@ -44,7 +44,7 @@ class ZenToWooCommand extends WP_CLI_Command {
 
 		if(!isset($args[3])) WP_CLI::error( 'No attribute JSON file specified' );
 		$attribute_import = file_get_contents($args[3]);
-		$attribute_import_data = json_decode($attribute_import);
+		$attribute_import_data = json_decode($attribute_import, true);
 		if(is_null($attribute_import_data)) WP_CLI::error( 'Unable to parse attribute JSON file' );
 
 		// CATEGORIES
@@ -177,14 +177,14 @@ class ZenToWooCommand extends WP_CLI_Command {
 
 		foreach($attribute_import_data as $data) {
 
-			if(!isset($product_id_lookup[$data->id])) {
-				WP_CLI::error( 'Product ID not found: ' . $data->id, false );
+			if(!isset($product_id_lookup[$data['id']])) {
+				WP_CLI::error( 'Product ID not found: ' . $data['id'], false );
 				continue;
 			}
 
-			$product_id = $product_id_lookup[$data->id];
+			$product_id = $product_id_lookup[$data['id']];
 
-			$attributes_data = $data->attributes;
+			$attributes_data = $data['attributes'];
 
 			if( sizeof($attributes_data) > 0 ){
 
@@ -205,6 +205,15 @@ class ZenToWooCommand extends WP_CLI_Command {
 								wp_set_object_terms( $product_id, $option, $taxonomy, true );
 								// Get the term ID
 								$option_term_ids[] = get_term_by( 'name', $option, $taxonomy )->term_id;
+							} else {
+								$result = wp_insert_term( $option, $taxonomy );
+
+								if(is_wp_error($result)) {
+									WP_CLI::error( $result->get_error_message(), false );
+								} else {
+									$option_term_ids[] = $result['term_id'];
+								}
+
 							}
 						}
 					}
