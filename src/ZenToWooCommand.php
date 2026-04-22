@@ -42,6 +42,11 @@ class ZenToWooCommand extends WP_CLI_Command {
 			return;
 		}
 
+		if(!isset($args[3])) WP_CLI::error( 'No attribute JSON file specified' );
+		$attribute_import = file_get_contents($args[3]);
+		$attribute_import_data = json_decode($attribute_import, true);
+		if(is_null($attribute_import_data)) WP_CLI::error( 'Unable to parse attribute JSON file' );
+
 		// CATEGORIES
 
 		//load the CSV document from a file path
@@ -166,6 +171,58 @@ class ZenToWooCommand extends WP_CLI_Command {
 			wp_set_object_terms($product_id, $category_ids, 'product_cat');
 			WP_CLI::success( 'Mapped product: ' . $product_id . ' to ' . count($category_ids) . ' categories' );
 		}
+
+
+		// ATTRIBUTES
+
+		foreach($attribute_import_data as $data) {
+
+			if(!isset($product_id_lookup[$data->id])) {
+				WP_CLI::error( 'Product ID not found: ' . $data->id, false );
+				continue;
+			}
+
+			$product_id = $product_id_lookup[$data->id];
+
+			$attributes_data = $data->attributes;
+
+			if( sizeof($attributes_data) > 0 ){
+
+				$attributes = array(); // Initializing
+
+				// Loop through defined attribute data
+				foreach( $attributes_data as $key => $attribute_array ) {
+					if( isset($attribute_array['name']) && isset($attribute_array['options']) ){
+						// Clean attribute name to get the taxonomy
+						$taxonomy = 'pa_' . wc_sanitize_taxonomy_name( $attribute_array['name'] );
+
+						$option_term_ids = array(); // Initializing
+
+						// Loop through defined attribute data options (terms values)
+						foreach( $attribute_array['options'] as $option ){
+							if( term_exists( $option, $taxonomy ) ){
+								// Save the possible option value for the attribute which will be used for variation later
+								wp_set_object_terms( $product_id, $option, $taxonomy, true );
+								// Get the term ID
+								$option_term_ids[] = get_term_by( 'name', $option, $taxonomy )->term_id;
+							}
+						}
+					}
+					// Loop through defined attribute data
+					$attributes[$taxonomy] = array(
+						'name'          => $taxonomy,
+						'value'         => $option_term_ids, // Need to be term IDs
+						'position'      => $key + 1,
+						'is_visible'    => $attribute_array['visible'],
+						'is_variation'  => $attribute_array['variation'],
+						'is_taxonomy'   => '1'
+					);
+				}
+				// Save the meta entry for product attributes
+				update_post_meta( $product_id, '_product_attributes', $attributes );
+			}
+		}
+
 	}
 
 }
