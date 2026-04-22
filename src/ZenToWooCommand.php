@@ -201,6 +201,7 @@ class ZenToWooCommand extends WP_CLI_Command {
 								'name' => $attribute_array['name'],
 								'slug' => wc_sanitize_taxonomy_name( $attribute_array['name'] ),
 							]);
+							WP_CLI::log( 'Created taxonomy: ' . $taxonomy );
 						}
 
 						$option_term_ids = array(); // Initializing
@@ -210,13 +211,15 @@ class ZenToWooCommand extends WP_CLI_Command {
 							if( term_exists( $option, $taxonomy ) ){
 								// Save the possible option value for the attribute which will be used for variation later
 								wp_set_object_terms( $product_id, $option, $taxonomy, true );
+
 								// Get the term ID
 								$option_term_ids[] = get_term_by( 'name', $option, $taxonomy )->term_id;
+
 							} else {
 								$result = wp_insert_term( $option, $taxonomy );
 
 								if(is_wp_error($result)) {
-									WP_CLI::error( $result->get_error_message(), false );
+									WP_CLI::error( 'Failed to insert attribute term. ' . $result->get_error_message(), false );
 								} else {
 									$option_term_ids[] = $result['term_id'];
 								}
