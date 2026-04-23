@@ -117,7 +117,7 @@ class ZenToWooCommand extends WP_CLI_Command {
 		$product_id_lookup = [];
 		$records = $csv->getRecords(['id', 'price', 'price_sale', 'image', 'name', 'description']);
 		foreach($records as $record) {
-			$product = new WC_Product_Simple();
+			$product = new WC_Product_Variable();
 			$product->set_name( $record['name'] ); // product title
 //			$product->set_slug( 'medium-size-wizard-hat-in-new-york' );
 			$product->set_regular_price( $record['price'] ); // in current shop currency
@@ -255,7 +255,9 @@ class ZenToWooCommand extends WP_CLI_Command {
 				continue;
 			}
 
+			WP_CLI::log( 'Generating variations for product: ' . $product_id );
 			$variations_count = $data_store->create_all_product_variations( $product );
+			WP_CLI::log( 'Sorting variations for product: ' . $product_id );
 			$data_store->sort_all_product_variations( $product->get_id() );
 			WP_CLI::success( 'Generated ' . $variations_count . ' variations for product: ' . $product_id );
 
