@@ -186,6 +186,8 @@ class ZenToWooCommand extends WP_CLI_Command {
 
 			$attributes_data = $data['attributes'];
 
+			$option_price_modifier_lookup = [];
+
 			if( sizeof($attributes_data) > 0 ){
 
 				$attributes = array(); // Initializing
@@ -208,20 +210,23 @@ class ZenToWooCommand extends WP_CLI_Command {
 
 						// Loop through defined attribute data options (terms values)
 						foreach( $attribute_array['options'] as $option ){
-							if( term_exists( $option, $taxonomy ) ){
+							if( term_exists( $option['name'], $taxonomy ) ){
 								// Save the possible option value for the attribute which will be used for variation later
-								wp_set_object_terms( $product_id, $option, $taxonomy, true );
+								wp_set_object_terms( $product_id, $option['name'], $taxonomy, true );
 
 								// Get the term ID
-								$option_term_ids[] = get_term_by( 'name', $option, $taxonomy )->term_id;
+								$term = get_term_by( 'name', $option['name'], $taxonomy )->term_id;
+								$option_price_modifier_lookup[$term->term_id] = $option['price_modifier'];
+								$option_term_ids[] = $term->term_id;
 
 							} else {
-								$result = wp_insert_term( $option, $taxonomy );
+								$result = wp_insert_term( $option['name'], $taxonomy );
 
 								if(is_wp_error($result)) {
 									WP_CLI::error( 'Failed to insert attribute term. ' . $result->get_error_message(), false );
 								} else {
 									$option_term_ids[] = $result['term_id'];
+									$option_price_modifier_lookup[$result['term_id']] = $option['price_modifier'];
 								}
 
 							}
@@ -239,6 +244,28 @@ class ZenToWooCommand extends WP_CLI_Command {
 				}
 				// Save the meta entry for product attributes
 				update_post_meta( $product_id, '_product_attributes', $attributes );
+				WP_CLI::success( 'Imported attributes for product: ' . $product_id );
+			}
+
+			// PRODUCT VARIATIONS
+			$product = wc_get_product( $product_id );
+			$data_store = $product->get_data_store();
+			if ( ! is_callable( array( $data_store, 'create_all_product_variations' ) ) ) {
+				WP_CLI::error( 'Product variations not supported for product ID ' . $product_id, false );
+				continue;
+			}
+
+			$variations_count = $data_store->create_all_product_variations( $product );
+			$data_store->sort_all_product_variations( $product->get_id() );
+			WP_CLI::success( 'Generated ' . $variations_count . ' variations for product: ' . $product_id );
+
+			$variations = $product->get_available_variations();
+			if( $variations ) {
+				foreach( $variations as $variation ) {
+					// a WC_Product_Variation object
+					$variation->set_price( $variation->get_price() + $option_price_modifier_lookup[$variation->get_attribute( 'pa_price_modifier' )] );
+					WP_CLI::log( 'Set variation price for product: ' . $product_id . ' to ' . $variation->get_price() );
+				}
 			}
 		}
 
