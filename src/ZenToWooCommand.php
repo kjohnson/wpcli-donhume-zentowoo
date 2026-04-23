@@ -215,7 +215,7 @@ class ZenToWooCommand extends WP_CLI_Command {
 								wp_set_object_terms( $product_id, $option['name'], $taxonomy, true );
 
 								// Get the term ID
-								$term = get_term_by( 'name', $option['name'], $taxonomy )->term_id;
+								$term = get_term_by( 'name', $option['name'], $taxonomy );
 								$option_price_modifier_lookup[$term->term_id] = $option['price_modifier'];
 								$option_term_ids[] = $term->term_id;
 
