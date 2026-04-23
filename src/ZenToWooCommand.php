@@ -223,7 +223,7 @@ class ZenToWooCommand extends WP_CLI_Command {
 								$result = wp_insert_term( $option['name'], $taxonomy );
 
 								if(is_wp_error($result)) {
-									WP_CLI::error( 'Failed to insert attribute term. ' . $result->get_error_message(), false );
+									WP_CLI::error( 'Failed to insert attribute term: ' . $taxonomy . '. ' . $result->get_error_message(), false );
 								} else {
 									$option_term_ids[] = $result['term_id'];
 									$option_price_modifier_lookup[$result['term_id']] = $option['price_modifier'];
@@ -265,7 +265,12 @@ class ZenToWooCommand extends WP_CLI_Command {
 			if( $variations ) {
 				foreach( $variations as $variation ) {
 					// a WC_Product_Variation object
-					$variation->set_price( $variation->get_price() + $option_price_modifier_lookup[$variation->get_attribute( 'pa_price_modifier' )] );
+					if(isset($option_price_modifier_lookup[$variation->get_attribute( 'pa_price_modifier' )])) {
+						$variation->set_price( $variation->get_price() + $option_price_modifier_lookup[$variation->get_attribute( 'pa_price_modifier' )] );
+					} else {
+						$variation->set_price( $variation->get_price() );
+					}
+
 					WP_CLI::log( 'Set variation price for product: ' . $product_id . ' to ' . $variation->get_price() );
 				}
 			}
