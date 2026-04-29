@@ -179,7 +179,7 @@ class ZenToWooCommand extends WP_CLI_Command {
 
 			$product_id = $product_id_lookup[$data['product_id']];
 
-			if(isset($product_field_id_lookup[$data['product_id']][$data['product_id']])) {
+			if(isset($product_field_id_lookup[$data['product_id']][$data['field_id']])) {
 
 				$field_id = wp_insert_post([
 					'post_type'   => 'af_pao_fields',
@@ -208,9 +208,9 @@ class ZenToWooCommand extends WP_CLI_Command {
 
 				$product_field_id_lookup[$data['product_id']][$data['product_id']] = $field_id;
 
-				WP_CLI::log( 'Imported product field: ' . $data['option_name'] );
+				WP_CLI::log( 'Imported product field: ' . $data['option_name'] . ' for product ' . $product_id );
 			}
-			$field_id = $product_field_id_lookup[$data['product_id']][$data['product_id']];
+			$field_id = $product_field_id_lookup[$data['product_id']][$data['field_id']];
 
 			$option_id = wp_insert_post([
 				'post_type'   => 'af_pao_options',
@@ -228,7 +228,7 @@ class ZenToWooCommand extends WP_CLI_Command {
 				update_post_meta( $option_id, 'af_addon_field_options_price_type', 'af_addon_flat_fee' );
 			}
 
-			WP_CLI::log( 'Imported product option: ' . $data['value'] );
+			WP_CLI::log( 'Imported product option: ' . $data['value'] . ' for product ' . $product_id );
 		}
 	}
 }
