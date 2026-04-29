@@ -177,6 +177,10 @@ class ZenToWooCommand extends WP_CLI_Command {
 		$product_field_id_lookup = [];
 		foreach($options_import_data as $data) {
 
+			if(!isset($product_id_lookup[$data['product_id']])) {
+				WP_CLI::error( 'Product lookup ID not found: ' . $data['product_id'], false );
+			}
+
 			$product_id = $product_id_lookup[$data['product_id']];
 
 			if(isset($product_field_id_lookup[$data['product_id']][$data['field_id']])) {
