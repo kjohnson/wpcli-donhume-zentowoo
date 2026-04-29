@@ -183,7 +183,7 @@ class ZenToWooCommand extends WP_CLI_Command {
 
 			$product_id = $product_id_lookup[$data['product_id']];
 
-			if(isset($product_field_id_lookup[$data['product_id']][$data['field_id']])) {
+			if(!isset($product_field_id_lookup[$data['product_id']][$data['field_id']])) {
 
 				$field_id = wp_insert_post([
 					'post_type'   => 'af_pao_fields',
