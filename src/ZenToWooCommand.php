@@ -116,8 +116,12 @@ class ZenToWooCommand extends WP_CLI_Command {
 		$products = [];
 		$product_id_lookup = [];
 		$records = $csv->getRecords(['id', 'price', 'price_sale', 'image', 'name', 'description']);
-		$records = array_slice($records, 0, 10);
+		$count = 0;
 		foreach($records as $record) {
+
+			if($count > 10) break;
+			$count++;
+
 			$product = new WC_Product_Variable();
 			$product->set_name( $record['name'] ); // product title
 //			$product->set_slug( 'medium-size-wizard-hat-in-new-york' );
