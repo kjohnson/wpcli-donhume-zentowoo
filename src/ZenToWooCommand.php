@@ -47,65 +47,65 @@ class ZenToWooCommand extends WP_CLI_Command {
 		$options_import_data = json_decode($options_import, true);
 		if(is_null($options_import_data)) WP_CLI::error( 'Unable to parse product options JSON file' );
 
-		// CATEGORIES
-
-		//load the CSV document from a file path
-		$csv = Reader::from($args[0], 'r');
-		$csv->setHeaderOffset(0);
-
-		$categories = [];
-		$subcategories = [];
-		$records = $csv->getRecords(['categories_id', 'parent_id', 'categories_name', 'categories_description', 'sort_order', 'categories_status']);
-		foreach($records as $record) {
-
-			if($record['parent_id'] == 0) {
-				$categories[$record['categories_id']] = $record;
-			} else {
-				$subcategories[$record['categories_id']] = $record;
-			}
-		}
-
-		$categories_id_lookup = [];
-		foreach($categories as $category) {
-
-			$existing_term = term_exists( $category['categories_name'], 'product_cat' );
-			if( $existing_term ) {
-				WP_CLI::log( 'Skipping category: ' . $category['categories_name'] );
-				$categories_id_lookup[$category['categories_id']] = $existing_term['term_id'];
-			} else {
-				$result = wp_insert_term( $category['categories_name'], 'product_cat');
-
-				if(is_wp_error($result)) {
-					WP_CLI::error( $result->get_error_message(), false );
-				} else {
-					$categories_id_lookup[$category['categories_id']] = $result['term_id'];
-					WP_CLI::log( 'Imported category: ' . $result['term_id'] );
-				}
-			}
-		}
-		WP_CLI::success( 'Processed ' . count($categories) . ' categories' );
-
-		foreach($subcategories as $subcategory) {
-
-
-			$existing_term = term_exists( $subcategory['categories_name'], 'product_cat' );
-			if( $existing_term ) {
-				WP_CLI::log( 'Skipping subcategory: ' . $subcategory['categories_name'] );
-				$categories_id_lookup[$subcategory['categories_id']] = $existing_term['term_id'];
-			} else {
-				$result = wp_insert_term( $subcategory['categories_name'], 'product_cat', [
-					'parent' => $categories_id_lookup[$subcategory['parent_id']]
-				]);
-
-				if(is_wp_error($result)) {
-					WP_CLI::error( $result->get_error_message(), false );
-				} else {
-					$categories_id_lookup[$subcategory['categories_id']] = $result['term_id'];
-					WP_CLI::log( 'Imported subcategory: ' . $result['term_id'] );
-				}
-			}
-		}
-		WP_CLI::success( 'Processed ' . count($subcategories) . ' subcategories' );
+//		// CATEGORIES
+//
+//		//load the CSV document from a file path
+//		$csv = Reader::from($args[0], 'r');
+//		$csv->setHeaderOffset(0);
+//
+//		$categories = [];
+//		$subcategories = [];
+//		$records = $csv->getRecords(['categories_id', 'parent_id', 'categories_name', 'categories_description', 'sort_order', 'categories_status']);
+//		foreach($records as $record) {
+//
+//			if($record['parent_id'] == 0) {
+//				$categories[$record['categories_id']] = $record;
+//			} else {
+//				$subcategories[$record['categories_id']] = $record;
+//			}
+//		}
+//
+//		$categories_id_lookup = [];
+//		foreach($categories as $category) {
+//
+//			$existing_term = term_exists( $category['categories_name'], 'product_cat' );
+//			if( $existing_term ) {
+//				WP_CLI::log( 'Skipping category: ' . $category['categories_name'] );
+//				$categories_id_lookup[$category['categories_id']] = $existing_term['term_id'];
+//			} else {
+//				$result = wp_insert_term( $category['categories_name'], 'product_cat');
+//
+//				if(is_wp_error($result)) {
+//					WP_CLI::error( $result->get_error_message(), false );
+//				} else {
+//					$categories_id_lookup[$category['categories_id']] = $result['term_id'];
+//					WP_CLI::log( 'Imported category: ' . $result['term_id'] );
+//				}
+//			}
+//		}
+//		WP_CLI::success( 'Processed ' . count($categories) . ' categories' );
+//
+//		foreach($subcategories as $subcategory) {
+//
+//
+//			$existing_term = term_exists( $subcategory['categories_name'], 'product_cat' );
+//			if( $existing_term ) {
+//				WP_CLI::log( 'Skipping subcategory: ' . $subcategory['categories_name'] );
+//				$categories_id_lookup[$subcategory['categories_id']] = $existing_term['term_id'];
+//			} else {
+//				$result = wp_insert_term( $subcategory['categories_name'], 'product_cat', [
+//					'parent' => $categories_id_lookup[$subcategory['parent_id']]
+//				]);
+//
+//				if(is_wp_error($result)) {
+//					WP_CLI::error( $result->get_error_message(), false );
+//				} else {
+//					$categories_id_lookup[$subcategory['categories_id']] = $result['term_id'];
+//					WP_CLI::log( 'Imported subcategory: ' . $result['term_id'] );
+//				}
+//			}
+//		}
+//		WP_CLI::success( 'Processed ' . count($subcategories) . ' subcategories' );
 
 		// PRODUCTS
 
@@ -116,6 +116,7 @@ class ZenToWooCommand extends WP_CLI_Command {
 		$products = [];
 		$product_id_lookup = [];
 		$records = $csv->getRecords(['id', 'price', 'price_sale', 'image', 'name', 'description']);
+		$records = array_slice($records, 0, 10);
 		foreach($records as $record) {
 			$product = new WC_Product_Variable();
 			$product->set_name( $record['name'] ); // product title
@@ -210,7 +211,7 @@ class ZenToWooCommand extends WP_CLI_Command {
 				$field_title = sanitize_meta( '', $data['option_name'], '' );
 				update_post_meta( $field_id, 'af_addon_field_title', $field_title );
 
-				$product_field_id_lookup[$data['product_id']][$data['product_id']] = $field_id;
+				$product_field_id_lookup[$data['product_id']][$data['field_id']] = $field_id;
 
 				WP_CLI::log( 'Imported product field: ' . $data['option_name'] . ' for product ' . $product_id );
 			}
