@@ -133,6 +133,21 @@ class ZenToWooCommand extends WP_CLI_Command {
 
 			if(isset($record['image']) && $record['image']) {
 				$attachment_id = media_sideload_image('https://dev.donhume.com/wp-content/uploads/zentowoo/images/' . $record['image'], $product->get_id(), $record['name'], 'id');
+
+				if(is_wp_error($attachment_id)) {
+					WP_CLI::error( $attachment_id->get_error_message() . ': Unable to sideload image: ' . $record['image'], false );
+
+					WP_CLI::log('Re-attempt image sideload as lowercase...');
+					$attachment_id = media_sideload_image('https://dev.donhume.com/wp-content/uploads/zentowoo/images/' . strtolower($record['image']), $product->get_id(), $record['name'], 'id');
+				}
+
+				if(is_wp_error($attachment_id)) {
+					WP_CLI::error( $attachment_id->get_error_message() . ': Unable to sideload image: ' . $record['image'], false );
+
+					WP_CLI::log('Re-attempt image sideload as modified filename...');
+					$attachment_id = media_sideload_image('https://dev.donhume.com/wp-content/uploads/zentowoo/images/' . str_replace(['_web', ' OS'], '',$record['image']), $product->get_id(), $record['name'], 'id');
+				}
+
 				if(is_wp_error($attachment_id)) {
 					WP_CLI::error( $attachment_id->get_error_message() . ': Unable to sideload image: ' . $record['image'], false );
 				} else {
@@ -237,10 +252,10 @@ class ZenToWooCommand extends WP_CLI_Command {
 
 			update_post_meta( $option_id, 'af_addon_stock_status', 'in_stock' ); // Must be "in_stock" to display
 
-			if($data['price_modifier']) {
+			if(isset($data['price_modifier']) && floatval($data['price_modifier']) > 0) {
 				$option_price = sanitize_meta( '', $data['price_modifier'], '' );
 				update_post_meta( $option_id, 'af_addon_field_options_price', $option_price );
-				update_post_meta( $option_id, 'af_addon_field_options_price_type', 'af_addon_flat_fee' );
+				update_post_meta( $option_id, 'af_addon_field_options_price_type', 'flat_fixed_fee' );
 			} else {
 				update_post_meta( $option_id, 'af_addon_field_options_price', '0.0000' );
 				update_post_meta( $option_id, 'af_addon_field_options_price_type', 'free' );
