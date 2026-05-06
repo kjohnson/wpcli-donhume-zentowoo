@@ -119,8 +119,8 @@ class ZenToWooCommand extends WP_CLI_Command {
 		$count = 0;
 		foreach($records as $record) {
 
-			if($count > 10) break;
-			$count++;
+//			if($count > 10) break;
+//			$count++;
 
 			$product = new WC_Product_Simple();
 			$product->set_name( $record['name'] ); // product title
