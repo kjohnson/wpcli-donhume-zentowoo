@@ -3,7 +3,7 @@
 namespace ForgeMedia\ZenToWoo;
 
 use League\Csv\Reader;
-use WC_Product_Variable;
+use WC_Product_Simple;
 use WP_CLI;
 use WP_CLI_Command;
 
