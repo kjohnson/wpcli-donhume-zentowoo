@@ -135,16 +135,18 @@ class ZenToWooCommand extends WP_CLI_Command {
 				$attachment_id = media_sideload_image('https://dev.donhume.com/wp-content/uploads/zentowoo/images/' . $record['image'], $product->get_id(), $record['name'], 'id');
 
 				if(is_wp_error($attachment_id)) {
-					WP_CLI::error( $attachment_id->get_error_message() . ': Unable to sideload image: ' . $record['image'], false );
-
 					WP_CLI::log('Re-attempt image sideload as lowercase...');
 					$attachment_id = media_sideload_image('https://dev.donhume.com/wp-content/uploads/zentowoo/images/' . strtolower($record['image']), $product->get_id(), $record['name'], 'id');
 				}
 
-				if(is_wp_error($attachment_id)) {
-					WP_CLI::error( $attachment_id->get_error_message() . ': Unable to sideload image: ' . $record['image'], false );
 
-					WP_CLI::log('Re-attempt image sideload as modified filename...');
+				if(is_wp_error($attachment_id)) {
+					WP_CLI::log('Re-attempt image sideload as uppercase...');
+					$attachment_id = media_sideload_image('https://dev.donhume.com/wp-content/uploads/zentowoo/images/' . strtoupper($record['image']), $product->get_id(), $record['name'], 'id');
+				}
+
+				if(is_wp_error($attachment_id)) {
+					WP_CLI::log('Re-attempt image sideload with postfix removed...');
 					$attachment_id = media_sideload_image('https://dev.donhume.com/wp-content/uploads/zentowoo/images/' . str_replace(['_web', ' OS'], '',$record['image']), $product->get_id(), $record['name'], 'id');
 				}
 
