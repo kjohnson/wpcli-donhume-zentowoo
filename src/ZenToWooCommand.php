@@ -265,5 +265,70 @@ class ZenToWooCommand extends WP_CLI_Command {
 
 			WP_CLI::log( 'Imported product option: ' . $data['value'] . ' for product ' . $product_id );
 		}
+
+		// ATTRIBUTES for filtering
+
+		foreach($options_import_data as $data) {
+
+			if(!isset($product_id_lookup[$data['product_id']])) {
+				WP_CLI::error( 'Product lookup ID not found: ' . $data['product_id'], false );
+				continue;
+			}
+
+			$product_id = $product_id_lookup[$data['product_id']];
+			$attribute_slug = sanitize_title($data['option_name']);
+			$attribute_id = wc_attribute_taxonomy_id_by_name($attribute_slug);
+
+			if(!$attribute_id) {
+
+				$result = wc_create_attribute([
+					'name' => $data['option_name'],
+					'slug' => $attribute_slug,
+				]);
+
+				if(is_wp_error($result)) {
+					WP_CLI::error( 'Unable to create attribute: ' . $result->get_error_message(), false );
+					continue;
+				}
+
+				$attribute_id = $result;
+			}
+
+			$product = wc_get_product($product_id);
+			$attribute = wc_get_attribute($attribute_id);
+
+			$attributes = $product->get_attributes();
+
+			if(!isset($attributes[$attribute->slug])) {
+				$product_attribute = new \WC_Product_Attribute();
+				$product_attribute->set_id($attribute->id);
+				$product_attribute->set_name($attribute->slug);
+				$product_attribute->set_options([$data['value']]);
+				$product_attribute->set_position(1);
+				$product_attribute->set_visible(true);
+				$product_attribute->set_variation(false);
+				$attributes[$attribute->slug] = $product_attribute;
+			} else {
+				$product_attribute = $attributes[$attribute->slug];
+
+				/*
+				 * Workaround: Changing attribute options are not recognized, so force a change
+				 * by unsetting the attribute, saving, re-adding the attribute, save again.
+				 * @link https://stackoverflow.com/a/78128560
+				 */
+				unset($attributes[$attribute->slug]);
+				$product->set_attributes($attributes);
+				$product->save();
+
+				$options = $product_attribute->get_options();
+				$options[] = $data['value'];
+				$product_attribute->set_options($options);
+				$attributes[$attribute->slug] = $product_attribute;
+			}
+
+			$product->set_attributes($attributes);
+			$product->save();
+
+		}
 	}
 }
