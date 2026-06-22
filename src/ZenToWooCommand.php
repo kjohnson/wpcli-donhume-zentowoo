@@ -346,7 +346,7 @@ class ZenToWooCommand extends WP_CLI_Command {
 				unset($attributes[$attribute->slug]);
 				$product->set_attributes($attributes);
 				$product->save();
-This
+
 				$options = $product_attribute->get_options();
 				$options[] = $data['value'];
 				$product_attribute->set_options($options);
