@@ -23,6 +23,33 @@ class ZenToWooCommand extends WP_CLI_Command {
 		WP_CLI::success( 'Hello World!' );
 	}
 
+	function delete_products( $args, $assoc_args ) {
+		WP_CLI::confirm( 'This will permanently delete all WooCommerce products. Are you sure?' );
+
+		$product_ids = wc_get_products( [
+			'limit'  => -1,
+			'return' => 'ids',
+		] );
+
+		if ( empty( $product_ids ) ) {
+			WP_CLI::success( 'No products found.' );
+			return;
+		}
+
+		$count = 0;
+		foreach ( $product_ids as $product_id ) {
+			$product = wc_get_product( $product_id );
+			if ( $product ) {
+				$name = $product->get_name();
+				$product->delete( true );
+				WP_CLI::log( 'Deleted product: ' . $name . ' (ID: ' . $product_id . ')' );
+				$count++;
+			}
+		}
+
+		WP_CLI::success( 'Deleted ' . $count . ' products.' );
+	}
+
 	function csv( $args, $assoc_args ) {
 
 		add_filter('https_ssl_verify', '__return_false');
@@ -319,7 +346,7 @@ class ZenToWooCommand extends WP_CLI_Command {
 				unset($attributes[$attribute->slug]);
 				$product->set_attributes($attributes);
 				$product->save();
-
+This
 				$options = $product_attribute->get_options();
 				$options[] = $data['value'];
 				$product_attribute->set_options($options);
